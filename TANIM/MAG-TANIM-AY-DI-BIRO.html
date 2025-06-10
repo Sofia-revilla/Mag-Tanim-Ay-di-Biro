@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="uisual" content="Made with Uisual (uisual.com)">
+    <meta name="author" content="#">
+    <meta name="description" content="#">
+    <meta name="referrer" content="unsafe-url">
+    <meta name="robots" content="index, follow">
+    <link rel="preconnect" href="images/logo.png">
+    <link rel="icon" href="images/fav-icon.png" type="image/png">
+    <link rel="me" href="#">
+    <link rel="canonical" href="#">
+    <link rel="icon" type="images/fav-icon" href="#" sizes="48x48">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap">
+    <link rel="preload" as="style" href="style.css">
+    <link rel="stylesheet" href="style.css">
+    <title>MAG TANIM AY DI BIRO</title>
+    <style>
+        /* Basic styling for the info box */
+        .info-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+        }
+
+        .info-box-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            max-height: 80vh; /* Limit height to prevent overflow */
+            overflow-y: auto; /* Enable scrolling if content is too long */
+        }
+
+        .info-box-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .info-box-close:hover {
+            color: #f00;
+        }
+
+        /* Added style for history items to be clickable */
+        .history-item {
+            cursor: pointer;
+            text-decoration: underline;
+            color: #007bff;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .history-item:hover {
+            color: #0056b3;
+        }
+    </style>
+  </head>
+  <body>
+    <header role="banner" class="ui-section-header">
+      <div class="ui-layout-container">
+        <div class="ui-section-header__layout ui-layout-flex">
+          <a href="#" role="link" aria-label="#">
+            <img src="images/fav-icon.png" alt="Fav Icon Logo" height="58" width="58">
+          </a>
+          <a href="#" role="link" aria-label="#" id="historyIcon">
+            <img src="images/history.png" alt="History Icon" height="58" width="58">
+          </a>
+        </div>
+        </div>
+    </header>
+    <main role="main">
+      <section class="ui-section-hero">
+        <div class="ui-layout-container">
+          <div class="ui-layout-column-6 ui-layout-column-center">
+            <h1 style="margin-top: -20px; font-size: 3.5em;">MAG TANIM AY DI BIRO</h1>
+            <p class="ui-text-intro">Crop Detector, Using camera</p>
+            <div class="ui-component-cta ui-layout-flex">
+              <form action="#" class="ui-component-form ui-layout-grid ui-layout-column-4">
+                <input type="search" placeholder="Search" class="ui-component-input ui-component-input-medium" required id="searchBarInput">
+                <img src="images/search.png" alt="Search Icon" height="78" width="68" style="cursor: pointer;" id="cameraTrigger">
+              </form>
+              <p class="text-note"><small>Available on Mac, Windows, and Linux.</small></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    <div id="infoBoxOverlay" class="info-box-overlay">
+        <div class="info-box-content">
+            <span class="info-box-close" id="infoBoxClose">&times;</span>
+            <h3 id="infoBoxTitle">Crop Detection Results</h3>
+            <div id="infoBoxBody">
+                <p>Results will appear here.</p>
+            </div>
+        </div>
+    </div>
+          <section class="ui-section-content">
+        <div class="ui-layout-container">
+          <div class="ui-section-content__layout ui-layout-grid ui-layout-grid-2">
+            <video id="cameraFeed" autoplay style="display:none; max-width: 100%;"></video>
+            <canvas id="cameraCanvas" style="display:none;"></canvas>
+
+            <div class="ui-component-card ui-layout-column-4">
+            <img src="images/plant.gif" alt="#" loading="lazy" class="ui-component-card--image">
+  
+    </footer>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+    const cameraTrigger = document.getElementById('cameraTrigger');
+    const cameraFeed = document.getElementById('cameraFeed');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const searchInput = document.getElementById('searchBarInput');
+    const infoBoxOverlay = document.getElementById('infoBoxOverlay');
+    const infoBoxClose = document.getElementById('infoBoxClose');
+    const infoBoxTitle = document.getElementById('infoBoxTitle');
+    const infoBoxBody = document.getElementById('infoBoxBody');
+    const historyIcon = document.getElementById('historyIcon');
+    const openPythonTerminalButton = document.getElementById('openPythonTerminalButton'); // Get the new button
+
+    let stream = null; // To hold the camera stream
+    let clientSearchHistory = []; // Client-side array to store search history
+
+    // --- Client-Side History Management Functions ---
+
+    /**
+     * Records a search term in the client-side history.
+     * @param {string} searchTerm The term to record.
+     */
+    function recordSearchTerm(searchTerm) {
+        if (searchTerm && !clientSearchHistory.includes(searchTerm)) {
+            clientSearchHistory.push(searchTerm);
+            console.log('Client-side history updated:', clientSearchHistory);
+        }
+    }
+
+    /**
+     * Clears the client-side search history.
+     */
+    function clearClientHistory() {
+        clientSearchHistory = [];
+        console.log('Client-side history cleared.');
+    }
+
+    // --- Helper Functions for Display ---
+
+    /**
+     * Displays the search history in the info box.
+     * @param {Array<string>} historyData An array of search terms.
+     */
+    function displayHistory(historyData) {
+        let historyContent = "";
+        if (historyData.length === 0) {
+            historyContent = "<p>Your search history is empty.</p>";
+        } else {
+            historyContent = "<h4>Past Searches:</h4><ul>";
+            // Display in reverse order (most recent first)
+            for (let i = historyData.length - 1; i >= 0; i--) {
+                const item = historyData[i];
+                historyContent += `<li><a href="#" class="history-item" data-term="${encodeURIComponent(item)}">${item}</a></li>`;
+            }
+            historyContent += "</ul><p>Click on a term to search again.</p>";
+            historyContent += '<button id="clearHistoryButton" style="margin-top: 10px; padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear History</button>';
+        }
+        displayInfoBox("Search History", historyContent);
+
+        // Add event listeners to history items after they are rendered
+        if (historyData.length > 0) {
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const term = decodeURIComponent(e.target.dataset.term);
+                    searchInput.value = term; // Put the term in the search bar
+                    infoBoxOverlay.style.display = 'none'; // Close history box
+                    processInputWithGemini("text-search", term); // Re-run the search simulation
+                });
+            });
+
+            // Add event listener for clear history button
+            document.getElementById('clearHistoryButton').addEventListener('click', () => {
+                clearClientHistory(); // Call the client-side clear function
+                displayHistory([]); // Update the displayed history immediately
+            });
+        }
+    }
+
+    /**
+     * Shows the overlay info box with a given title and content.
+     * @param {string} title The title for the info box.
+     * @param {string} content The HTML content for the info box body.
+     */
+    function displayInfoBox(title, content) {
+        infoBoxTitle.textContent = title;
+        infoBoxBody.innerHTML = content; // Use innerHTML to allow for basic HTML tags like <p>, <strong>, <ul>, <li>
+        infoBoxOverlay.style.display = 'flex'; // Show the overlay
+    }
+
+    // --- Event Listeners ---
+
+    // Event listener for the camera trigger icon
+    cameraTrigger.addEventListener('click', async (event) => {
+        event.preventDefault(); // Prevent default form submission if any
+
+        if (stream) {
+            // If camera is already active, stop it and hide elements
+            stream.getTracks().forEach(track => track.stop());
+            cameraFeed.style.display = 'none';
+            cameraCanvas.style.display = 'none';
+            cameraFeed.srcObject = null;
+            stream = null;
+            console.log("Camera stopped. Capturing image for detection.");
+
+            // Capture a frame from the video feed before stopping
+            if (cameraFeed.readyState === cameraFeed.HAVE_ENOUGH_DATA) {
+                const context = cameraCanvas.getContext('2d');
+                cameraCanvas.width = cameraFeed.videoWidth;
+                cameraCanvas.height = cameraFeed.videoHeight;
+                context.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height);
+                const imageDataUrl = cameraCanvas.toDataURL('image/png'); // Get image data as base64
+                
+                // Now directly process with client-side Gemini simulation
+                processInputWithGemini("image-detection", imageDataUrl);
+            }
+
+        } else {
+            // If camera is not active, start it
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                cameraFeed.srcObject = stream;
+                cameraFeed.style.display = 'block'; // Show the video feed
+                cameraFeed.play(); // Start playing the video
+                searchInput.value = "Click The Camera Or Search.";
+                displayInfoBox("Click The Camera Or Search.", "Point your camera at a plant and click the camera icon again to detect it!");
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                alert("Could not access camera. Please ensure you have a camera connected and grant permissions.");
+            }
+        }
+    });
+
+    // Event listener for the search input field for text-based searches
+    searchInput.addEventListener('keypress', async (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevent form submission
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm) {
+                recordSearchTerm(searchTerm); // Record search term client-side
+                processInputWithGemini("text-search", searchTerm); // Display info using client-side simulation
+            } else {
+                displayInfoBox("Search Info", "Please enter a search term.");
+            }
+        }
+    });
+
+    // Event listener for the history icon
+    historyIcon.addEventListener('click', (event) => {
+        event.preventDefault(); // Prevent default link behavior
+        displayHistory(clientSearchHistory); // Display history from client-side array
+    });
+
+    // Event listener for the close button of the info box
+    infoBoxClose.addEventListener('click', () => {
+        infoBoxOverlay.style.display = 'none';
+    });
+
+    // New event listener for the "Open Python Terminal" button
+    openPythonTerminalButton.addEventListener('click', () => {
+        simulateOpenPythonTerminal();
+    });
+
+    // --- Gemini Simulation Function ---
+
+    /**
+     * Simulates Gemini's response based on input type (text search or image detection)
+     * and displays information in the info box.
+     * In a real application, this would involve calling a Gemini API.
+     * @param {string} type "text-search" or "image-detection".
+     * @param {string} value The search term or image data URL.
+     */
+    async function processInputWithGemini(type, value) {
+        displayInfoBox("Thinking...", "Gemini is processing your request. Please wait...");
+        console.log(`Processing with Gemini (simulated) - Type: ${type}, Value: ${value.substring(0, 50)}...`);
+
+        let cropName = "";
+
+        if (type === "text-search") {
+            cropName = value.toLowerCase();
+        } else if (type === "image-detection") {
+            // This is a client-side simulation.
+            // In a real app, the image data URL would be sent to an actual image detection model (like Gemini's Vision capabilities).
+            const simulatedDetectedCrops = ["rice plant", "tomato", "mango"];
+            cropName = simulatedDetectedCrops[Math.floor(Math.random() * simulatedDetectedCrops.length)];
+        }
+
+        // Simulate a delay for AI processing
+        setTimeout(() => {
+            let title = `Information about ${cropName.charAt(0).toUpperCase() + cropName.slice(1)}`;
+            let content = "";
+
+            switch (cropName) {
+                case "rice plant":
+                    content = `
+                        <h4>About Rice Plants:</h4>
+                        <p>The **rice plant** (<em>Oryza sativa</em>) is the most widely consumed staple food for a large part of the world's human population, especially in Asia. It is a cereal grain and the agricultural commodity with the third-highest worldwide production.</p>
+                        
+                        <h4>Benefits:</h4>
+                        <ul>
+                            <li>**Nutritional Value:** A primary source of carbohydrates, providing energy. It also contains some protein and B vitamins.</li>
+                            <li>**Economic Importance:** Crucial for the economy and livelihood of many farmers and countries.</li>
+                            <li>**Food Security:** Provides food security for billions globally.</li>
+                        </ul>
+                        
+                        <h4>Tips to Grow Rice:</h4>
+                        <p>Rice cultivation is water-intensive. Here are some tips:</p>
+                        <ul>
+                            <li>**Climate:** Thrives in warm, humid climates with ample rainfall or irrigation.</li>
+                            <li>**Soil:** Prefers heavy, water-retentive soils like clay or loam.</li>
+                            <li>**Water Management:** Requires flooded conditions for most of its growth cycle (paddy fields). Consistent water levels are key.</li>
+                            <li>**Sunlight:** Needs at least 6-8 hours of direct sunlight daily.</li>
+                            <li>**Nutrients:** Requires balanced fertilization, including nitrogen, phosphorus, and potassium.</li>
+                            <li>**Pest & Disease Control:** Monitor for common rice pests (e.g., rice bugs, stem borers) and diseases (e.g., blast, bacterial blight). Integrated Pest Management (IPM) is recommended.</li>
+                        </ul>
+                    `;
+                    break;
+                case "tomato":
+                    content = `
+                        <h4>About Tomatoes:</h4>
+                        <p>The **tomato** (<em>Solanum lycopersicum</em>) is a fruit, botanically speaking, but is used culinarily as a vegetable. It's native to western South America and Central America and is now cultivated worldwide.</p>
+                        
+                        <h4>Benefits:</h4>
+                        <ul>
+                            <li>**Rich in Vitamins:** Excellent source of Vitamin C, K, folate, and potassium.</li>
+                            <li>**Antioxidants:** High in lycopene, a powerful antioxidant linked to reduced risk of heart disease and some cancers.</li>
+                            <li>**Hydration:** High water content contributes to hydration.</li>
+                            <li>**Versatility:** Used in countless dishes worldwide.</li>
+                        </ul>
+                        
+                        <h4>Tips to Grow Tomatoes:</h4>
+                        <p>Tomatoes are popular garden plants. Here's how to grow them:</p>
+                        <ul>
+                            <li>**Sunlight:** Require at least 6-8 hours of direct sunlight per day.</li>
+                            <li>**Soil:** Grow best in well-drained, fertile soil with a pH of 6.0 to 6.8. Amend with compost.</li>
+                            <li>**Watering:** Consistent watering is crucial, especially during fruit set. Avoid overhead watering to prevent fungal diseases.</li>
+                            <li>**Support:** Most varieties need staking, caging, or trellising to support heavy fruit.</li>
+                            <li>**Fertilization:** Feed regularly with a balanced fertilizer, switching to one higher in phosphorus and potassium once flowering begins.</li>
+                            <li>**Pest & Disease Control:** Watch out for aphids, hornworms, and common diseases like early blight and blossom end rot. Good air circulation helps.</li>
+                            </ul>
+                    `;
+                    break;
+                case "mango":
+                    content = `
+                        <h4>About Mangoes:</h4>
+                        <p>The **mango** (<em>Mangifera indica</em>) is a stone fruit native to South Asia. It is one of the most widely cultivated fruits in the tropics and is known as the "king of fruits" in many parts of the world, including the Philippines.</p>
+                        
+                        <h4>Benefits:</h4>
+                        <ul>
+                            <li>**Nutrient-Dense:** Rich in Vitamin C, Vitamin A, folate, and dietary fiber.</li>
+                            <li>**Antioxidant Power:** Contains various antioxidants that contribute to overall health.</li>
+                            <li>**Digestive Health:** Fiber content aids in digestion.</li>
+                            <li>**Cultural Significance:** A beloved fruit with significant cultural and economic importance in many regions.</li>
+                        </ul>
+                        
+                        <h4>Tips to Grow Mangoes:</h4>
+                        <p>Growing mango trees requires patience and specific conditions:</p>
+                        <ul>
+                            <li>**Climate:** Thrive in tropical and subtropical climates with distinct wet and dry seasons. They do not tolerate frost.</li>
+                            <li>**Sunlight:** Require full sun (at least 8 hours of direct sunlight daily).</li>
+                            <li>**Soil:** Prefer deep, well-drained soil, sandy loam is ideal. Good drainage is essential.</li>
+                            <li>**Watering:** Young trees need regular watering. Mature trees are more drought-tolerant but benefit from watering during dry spells, especially during flowering and fruiting.</li>
+                            <li>**Fertilization:** Fertilize young trees regularly with a balanced fertilizer. As they mature, use fertilizers higher in potassium and phosphorus.</li>
+                            <li>**Pruning:** Prune young trees to establish a strong structure. Minimal pruning is needed for mature trees, primarily for dead or diseased branches.</li>
+                            <li>**Pest & Disease Control:** Be vigilant for common pests like mango hoppers and fruit flies, and diseases such as anthracnose and powdery mildew.</li>
+                        </ul>
+                    `;
+                    break;
+                default:
+                    // Generic response for other inputs
+                    title = `Info on "${cropName.charAt(0).toUpperCase() + cropName.slice(1) || 'Your Input'}"`;
+                    content = `
+                        <p>As Gemini, I aim to provide comprehensive information about various plants and crops. While I don't have specific detailed data for **"${cropName.charAt(0).toUpperCase() + cropName.slice(1)}"** at this moment (or it's not a recognized crop name), here are some general tips that apply to growing most plants:</p>
+                        
+                        <h4>General Gardening Tips:</h4>
+                        <ul>
+                            <li>**Right Plant, Right Place:** Choose plants suited to your local climate, soil type, and available sunlight.</li>
+                            <li>**Soil Health:** Healthy soil is the foundation. Amend with organic matter like compost to improve fertility and drainage.</li>
+                            <li>**Watering Wisdom:** Water deeply and consistently, especially for young plants. Check soil moisture before watering again to avoid over or under-watering.</li>
+                            <li>**Sunlight Requirements:** Ensure your plants receive the recommended amount of sun exposure (full sun, partial sun, or shade).</li>
+                            <li>**Nutrition:** Provide necessary nutrients through fertilizers (organic or synthetic) based on your plant's needs and soil tests.</li>
+                            <li>**Pest & Disease Management:** Regularly inspect your plants for signs of pests or diseases. Address issues early with appropriate organic or chemical solutions.</li>
+                            <li>**Pruning & Maintenance:** Trim dead or diseased parts, and prune for shape, air circulation, and to encourage more flowers or fruit.</li>
+                        </ul>
+                        <p>Keep exploring and happy gardening!</p>
+                    `;
+                    break;
+            }
+            displayInfoBox(title, content);
+        }, 2000); // Simulate a 2-second delay for AI processing
+    }
+
+    // --- New Function to Simulate Opening Python Terminal ---
+    function simulateOpenPythonTerminal() {
+        displayInfoBox("Opening Terminal (Simulated)", `
+            <p>In a real application, this action would attempt to open a Python terminal or execute a Python script.</p>
+            <p><strong>For web browsers, direct execution of local applications is restricted for security.</strong></p>
+            <p>Possible real-world approaches include:</p>
+            <ul>
+                <li><strong>Backend Server:</strong> Sending a request to a server that then runs a Python script.</li>
+                <li><strong>Desktop Applications:</strong> Using frameworks like Electron that allow web technologies to build desktop apps with system access.</li>
+                <li><strong>Web-based IDEs/Terminals:</strong> Integrating a cloud-based terminal or Python interpreter.</li>
+            </ul>
+            <p>Since this is a client-side HTML page, this is a simulation only.</p>
+        `);
+        console.log("Attempted to simulate opening a Python terminal.");
+    }
+});
+    </script>
+  </body>
+</html>
